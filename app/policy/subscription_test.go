@@ -59,3 +59,22 @@ func TestInvalidSubscriptionPolicies(t *testing.T) {
 		}
 	}
 }
+
+func TestSubscriptionEmailMatchesValidatorCaseRules(t *testing.T) {
+	m, err := New(context.Background(), &Config{Subscriptions: map[string]*SubscriptionPolicy{
+		"account": {Emails: []string{"User@Example"}, DownlinkBps: 1000},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.ForEmail("user@example") == nil || m.ForEmail("USER@EXAMPLE") != m.ForEmail("User@Example") {
+		t.Fatal("case variant bypasses the configured subscription budget")
+	}
+	_, err = New(context.Background(), &Config{Subscriptions: map[string]*SubscriptionPolicy{
+		"a": {Emails: []string{"User@Example"}},
+		"b": {Emails: []string{"user@example"}},
+	}})
+	if err == nil {
+		t.Fatal("case variants assigned to different subscriptions")
+	}
+}

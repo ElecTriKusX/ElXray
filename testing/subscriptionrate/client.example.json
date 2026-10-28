@@ -1,0 +1,14 @@
+{
+  "log": {"loglevel": "warning"},
+  "inbounds": [{
+    "listen": "127.0.0.1", "port": 1080, "protocol": "socks",
+    "settings": {"auth": "noauth", "udp": false}
+  }],
+  "outbounds": [{
+    "protocol": "vless",
+    "settings": {
+      "address": "127.0.0.1", "port": 24443,
+      "id": "d46a23ea-902b-4fde-a501-7a98ce19be2a", "encryption": "none"
+    }
+  }]
+}

@@ -24,6 +24,8 @@ func BuildSubscriptionRates(config map[string]*SubscriptionPolicy) (map[string]*
 			if email == "" || strings.TrimSpace(email) != email {
 				return nil, fmt.Errorf("subscription %q has an empty or untrimmed email", id)
 			}
+			// VLESS/Trojan validators use case-insensitive email identities.
+			email = strings.ToLower(email)
 			if owner, exists := owners[email]; exists {
 				return nil, fmt.Errorf("email %q is repeated in subscriptions %q and %q", email, owner, id)
 			}

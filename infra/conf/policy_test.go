@@ -27,6 +27,26 @@ func TestSubscriptionRateConfig(t *testing.T) {
 	}
 }
 
+func TestSubscriptionRateRejectsInvalidJSONPolicies(t *testing.T) {
+	for _, input := range []string{
+		`{"subscriptions":{"a":{"emails":["u"],"uplinkBps":-1}}}`,
+		`{"subscriptions":{"a":{"emails":["u"],"uplinkBps":0.5}}}`,
+		`{"subscriptions":{"a":{"emails":["u"],"uplinkBps":18446744073709551616}}}`,
+		`{"subscriptions":{"a":{"emails":["u"],"uplinkBps":1099511627777}}}`,
+		`{"subscriptions":{"a":null}}`,
+		`{"subscriptions":{"a":{"emails":[]}}}`,
+		`{"subscriptions":{"a":{"emails":["u"]},"b":{"emails":["U"]}}}`,
+	} {
+		var config PolicyConfig
+		if err := json.Unmarshal([]byte(input), &config); err != nil {
+			continue
+		}
+		if _, err := config.Build(); err == nil {
+			t.Errorf("accepted invalid policy: %s", input)
+		}
+	}
+}
+
 func TestBufferSize(t *testing.T) {
 	cases := []struct {
 		Input  int32

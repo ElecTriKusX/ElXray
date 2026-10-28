@@ -149,8 +149,9 @@ func takeRateChunk(mb buf.MultiBuffer) (buf.MultiBuffer, buf.MultiBuffer) {
 	if len(mb) == 0 {
 		return nil, nil
 	}
-	if mb[0].UDP != nil {
-		// A datagram must not be split into independent UDP packets.
+	if mb[0].UDP != nil || mb[0].Len() <= subscriptionrate.Burst {
+		// Keep datagrams whole and never coalesce a following nil sentinel into
+		// the result. Several downstream writers dereference each buffer.
 		rest, first := buf.SplitFirst(mb)
 		return rest, buf.MultiBuffer{first}
 	}

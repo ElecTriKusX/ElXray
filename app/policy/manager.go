@@ -2,6 +2,7 @@ package policy
 
 import (
 	"context"
+	"strings"
 
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/subscriptionrate"
@@ -39,7 +40,7 @@ func New(ctx context.Context, config *Config) (*Instance, error) {
 
 // ForEmail returns the subscription's shared limits, or nil when unrestricted.
 func (m *Instance) ForEmail(email string) *subscriptionrate.Limits {
-	return m.subscriptions[email]
+	return m.subscriptions[strings.ToLower(email)]
 }
 
 // Type implements common.HasType.

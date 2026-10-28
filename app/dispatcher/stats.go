@@ -11,6 +11,12 @@ type SizeStatWriter struct {
 	Writer  buf.Writer
 }
 
+// RequiresBufferedCopy preserves a nested writer's guard against raw socket splice.
+func (w *SizeStatWriter) RequiresBufferedCopy() bool {
+	guard, ok := w.Writer.(interface{ RequiresBufferedCopy() bool })
+	return ok && guard.RequiresBufferedCopy()
+}
+
 func (w *SizeStatWriter) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	w.Counter.Add(int64(mb.Len()))
 	return w.Writer.WriteMultiBuffer(mb)
