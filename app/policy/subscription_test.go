@@ -3,6 +3,7 @@ package policy
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/xtls/xray-core/common/subscriptionrate"
 )
@@ -27,11 +28,11 @@ func TestSubscriptionBudgets(t *testing.T) {
 	if a == m.ForEmail("other") {
 		t.Fatal("different subscriptions must not share budgets")
 	}
-	if m.ForEmail("other").Downlink != nil {
+	if !m.ForEmail("other").Downlink.AllowN(time.Now(), subscriptionrate.Burst) {
 		t.Fatal("zero means unlimited")
 	}
-	if m.ForEmail("missing") != nil || m.ForEmail("free") != nil {
-		t.Fatal("unrestricted identities must have no wrapper")
+	if m.ForEmail("missing") != nil || m.ForEmail("free") == nil {
+		t.Fatal("configured unlimited identities need stable runtime budgets")
 	}
 	node, err := New(context.Background(), config)
 	if err != nil {

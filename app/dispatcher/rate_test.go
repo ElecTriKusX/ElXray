@@ -188,3 +188,18 @@ func TestBothDispatcherPathsApplySubscriptionPolicy(t *testing.T) {
 		t.Fatal("unidentified traffic unexpectedly throttled")
 	}
 }
+
+func TestSubscriptionFailClosedEmptyAuthenticatedEmail(t *testing.T) {
+	manager, err := apppolicy.New(context.Background(), &apppolicy.Config{RequireSubscription: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := session.ContextWithInbound(context.Background(), &session.Inbound{User: &protocol.MemoryUser{}})
+	limits := subscriptionLimits(ctx, manager)
+	if limits == nil {
+		t.Fatal("authenticated user without email bypassed fail-closed policy")
+	}
+	if err := limits.Uplink.WaitN(ctx, 1); err == nil {
+		t.Fatal("missing policy admitted traffic")
+	}
+}

@@ -1,8 +1,9 @@
 {
   "log": {"loglevel": "warning"},
-  "api": {"tag": "lab-api", "listen": "127.0.0.1:10085", "services": ["StatsService"]},
+  "api": {"tag": "lab-api", "listen": "127.0.0.1:10085", "services": ["StatsService", "SubscriptionService"]},
   "stats": {},
   "policy": {
+    "requireSubscription": true,
     "levels": {"0": {"statsUserUplink": true, "statsUserDownlink": true}},
     "subscriptions": {
       "lab-account": {"emails": ["lab@example"], "uplinkBps": 625000, "downlinkBps": 1250000}

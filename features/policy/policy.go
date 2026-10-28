@@ -82,6 +82,12 @@ type SubscriptionManager interface {
 	ForEmail(email string) *subscriptionrate.Limits
 }
 
+// SubscriptionController is the optional local management API for configured identities.
+type SubscriptionController interface {
+	GetSubscription(string) (subscriptionrate.Policy, error)
+	UpdateSubscription(subscriptionrate.Update) (subscriptionrate.Policy, error)
+}
+
 // ManagerType returns the type of Manager interface. Can be used to implement common.HasType.
 //
 // xray:api:stable

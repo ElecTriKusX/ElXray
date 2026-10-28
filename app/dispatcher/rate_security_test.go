@@ -78,7 +78,7 @@ func (w *countingRateSink) WriteMultiBuffer(mb buf.MultiBuffer) error {
 	return nil
 }
 
-func TestRateWriterCancelDuringReservation(t *testing.T) {
+func TestRateWriterCancelDuringWait(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	limit := subscriptionrate.New(1, 0).Uplink
@@ -89,12 +89,10 @@ func TestRateWriterCancelDuringReservation(t *testing.T) {
 	mb, refs := ownedRateBuffers(2)
 	done := make(chan error, 1)
 	go func() { done <- writer.WriteMultiBuffer(mb) }()
-	deadline := time.Now().Add(time.Second)
-	for limit.Tokens() >= 0 && time.Now().Before(deadline) {
-		time.Sleep(time.Millisecond)
-	}
-	if limit.Tokens() >= 0 {
-		t.Fatal("writer never reserved budget")
+	select {
+	case err := <-done:
+		t.Fatalf("exhausted slow budget did not block: %v", err)
+	case <-time.After(20 * time.Millisecond):
 	}
 	cancel()
 	select {

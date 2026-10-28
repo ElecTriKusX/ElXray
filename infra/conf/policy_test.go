@@ -10,7 +10,7 @@ import (
 
 func TestSubscriptionRateConfig(t *testing.T) {
 	var config PolicyConfig
-	if err := json.Unmarshal([]byte(`{"subscriptions":{"account":{"emails":["user"],"uplinkBps":1250000,"downlinkBps":6250000}}}`), &config); err != nil {
+	if err := json.Unmarshal([]byte(`{"subscriptions":{"account":{"emails":["user"],"uplinkBps":1250000,"downlinkBps":6250000,"revision":7,"disabled":true}},"requireSubscription":true}`), &config); err != nil {
 		t.Fatal(err)
 	}
 	built, err := config.Build()
@@ -18,7 +18,7 @@ func TestSubscriptionRateConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := built.Subscriptions["account"]
-	if p == nil || p.UplinkBps != 1250000 || p.DownlinkBps != 6250000 || len(p.Emails) != 1 || p.Emails[0] != "user" {
+	if !built.RequireSubscription || p == nil || p.Revision != 7 || !p.Disabled || p.UplinkBps != 1250000 || p.DownlinkBps != 6250000 || len(p.Emails) != 1 || p.Emails[0] != "user" {
 		t.Fatal("JSON rates or subscription identity lost")
 	}
 	config.Subscriptions["duplicate"] = &SubscriptionPolicy{Emails: []string{"user"}}

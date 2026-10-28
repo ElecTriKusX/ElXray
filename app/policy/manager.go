@@ -2,7 +2,9 @@ package policy
 
 import (
 	"context"
+	"slices"
 	"strings"
+	"sync"
 
 	"github.com/xtls/xray-core/common"
 	"github.com/xtls/xray-core/common/subscriptionrate"
@@ -11,9 +13,12 @@ import (
 
 // Instance is an instance of Policy manager.
 type Instance struct {
-	levels        map[uint32]*Policy
-	system        *SystemPolicy
-	subscriptions map[string]*subscriptionrate.Limits
+	unmanaged            *subscriptionrate.Limits
+	levels               map[uint32]*Policy
+	system               *SystemPolicy
+	subscriptions        map[string]*subscriptionrate.Limits
+	subscriptionMu       sync.Mutex
+	subscriptionPolicies map[string]subscriptionrate.Policy
 }
 
 // New creates new Policy manager instance.
@@ -23,9 +28,21 @@ func New(ctx context.Context, config *Config) (*Instance, error) {
 		return nil, err
 	}
 	m := &Instance{
-		levels:        make(map[uint32]*Policy),
-		system:        config.System,
-		subscriptions: subscriptions,
+		levels:               make(map[uint32]*Policy),
+		system:               config.System,
+		subscriptions:        subscriptions,
+		subscriptionPolicies: make(map[string]subscriptionrate.Policy),
+	}
+	if config.RequireSubscription {
+		m.unmanaged = subscriptionrate.New(0, 0)
+		m.unmanaged.Update(0, 0, true)
+	}
+	for id, p := range config.Subscriptions {
+		revision := p.Revision
+		if revision == 0 {
+			revision = 1
+		}
+		m.subscriptionPolicies[id] = subscriptionrate.Policy{ID: id, Emails: slices.Clone(p.Emails), UplinkBps: p.UplinkBps, DownlinkBps: p.DownlinkBps, Revision: revision, Disabled: p.Disabled}
 	}
 	if len(config.Level) > 0 {
 		for lv, p := range config.Level {
@@ -38,9 +55,12 @@ func New(ctx context.Context, config *Config) (*Instance, error) {
 	return m, nil
 }
 
-// ForEmail returns the subscription's shared limits, or nil when unrestricted.
+// ForEmail returns the subscription's shared limits, or nil for an unmanaged identity.
 func (m *Instance) ForEmail(email string) *subscriptionrate.Limits {
-	return m.subscriptions[strings.ToLower(email)]
+	if limits := m.subscriptions[strings.ToLower(email)]; limits != nil {
+		return limits
+	}
+	return m.unmanaged
 }
 
 // Type implements common.HasType.

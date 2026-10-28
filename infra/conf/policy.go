@@ -71,15 +71,18 @@ func (p *SystemPolicy) Build() (*policy.SystemPolicy, error) {
 }
 
 type PolicyConfig struct {
-	Levels        map[uint32]*Policy             `json:"levels"`
-	System        *SystemPolicy                  `json:"system"`
-	Subscriptions map[string]*SubscriptionPolicy `json:"subscriptions"`
+	Levels              map[uint32]*Policy             `json:"levels"`
+	System              *SystemPolicy                  `json:"system"`
+	Subscriptions       map[string]*SubscriptionPolicy `json:"subscriptions"`
+	RequireSubscription bool                           `json:"requireSubscription"`
 }
 
 type SubscriptionPolicy struct {
 	Emails      []string `json:"emails"`
 	UplinkBps   uint64   `json:"uplinkBps"`
 	DownlinkBps uint64   `json:"downlinkBps"`
+	Revision    uint64   `json:"revision"`
+	Disabled    bool     `json:"disabled"`
 }
 
 func (c *PolicyConfig) Build() (*policy.Config, error) {
@@ -94,12 +97,13 @@ func (c *PolicyConfig) Build() (*policy.Config, error) {
 		}
 	}
 	config := &policy.Config{
-		Level:         levels,
-		Subscriptions: make(map[string]*policy.SubscriptionPolicy),
+		Level:               levels,
+		RequireSubscription: c.RequireSubscription,
+		Subscriptions:       make(map[string]*policy.SubscriptionPolicy),
 	}
 	for id, p := range c.Subscriptions {
 		if p != nil {
-			config.Subscriptions[id] = &policy.SubscriptionPolicy{Emails: p.Emails, UplinkBps: p.UplinkBps, DownlinkBps: p.DownlinkBps}
+			config.Subscriptions[id] = &policy.SubscriptionPolicy{Emails: p.Emails, UplinkBps: p.UplinkBps, DownlinkBps: p.DownlinkBps, Revision: p.Revision, Disabled: p.Disabled}
 		} else {
 			config.Subscriptions[id] = nil
 		}

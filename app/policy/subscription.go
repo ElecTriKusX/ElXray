@@ -13,13 +13,14 @@ func BuildSubscriptionRates(config map[string]*SubscriptionPolicy) (map[string]*
 	byEmail := make(map[string]*subscriptionrate.Limits)
 	owners := make(map[string]string)
 	for id, p := range config {
-		if strings.TrimSpace(id) == "" || p == nil || len(p.Emails) == 0 {
+		if id == "" || len(id) > 1024 || strings.TrimSpace(id) != id || p == nil || len(p.Emails) == 0 {
 			return nil, fmt.Errorf("subscription %q requires an id, policy and at least one email", id)
 		}
 		if p.UplinkBps > subscriptionrate.MaxRate || p.DownlinkBps > subscriptionrate.MaxRate {
 			return nil, fmt.Errorf("subscription %q rate exceeds %d bytes/s", id, subscriptionrate.MaxRate)
 		}
 		limits := subscriptionrate.New(p.UplinkBps, p.DownlinkBps)
+		limits.Update(p.UplinkBps, p.DownlinkBps, p.Disabled)
 		for _, email := range p.Emails {
 			if email == "" || strings.TrimSpace(email) != email {
 				return nil, fmt.Errorf("subscription %q has an empty or untrimmed email", id)
@@ -30,9 +31,7 @@ func BuildSubscriptionRates(config map[string]*SubscriptionPolicy) (map[string]*
 				return nil, fmt.Errorf("email %q is repeated in subscriptions %q and %q", email, owner, id)
 			}
 			owners[email] = id
-			if p.UplinkBps != 0 || p.DownlinkBps != 0 {
-				byEmail[email] = limits
-			}
+			byEmail[email] = limits
 		}
 	}
 	return byEmail, nil

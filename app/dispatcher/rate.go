@@ -9,12 +9,11 @@ import (
 	"github.com/xtls/xray-core/common/session"
 	"github.com/xtls/xray-core/common/subscriptionrate"
 	"github.com/xtls/xray-core/features/policy"
-	"golang.org/x/time/rate"
 )
 
 func subscriptionLimits(ctx context.Context, manager policy.Manager) *subscriptionrate.Limits {
 	inbound := session.InboundFromContext(ctx)
-	if inbound == nil || inbound.User == nil || inbound.User.Email == "" {
+	if inbound == nil || inbound.User == nil {
 		return nil
 	}
 	if provider, ok := manager.(policy.SubscriptionManager); ok {
@@ -24,7 +23,7 @@ func subscriptionLimits(ctx context.Context, manager policy.Manager) *subscripti
 }
 
 // waitRate chunks reservations so a large MultiBuffer never exceeds the burst.
-func waitRate(ctx context.Context, limiter *rate.Limiter, size int32) error {
+func waitRate(ctx context.Context, limiter *subscriptionrate.Budget, size int32) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -41,12 +40,12 @@ func waitRate(ctx context.Context, limiter *rate.Limiter, size int32) error {
 // RateWriter enforces a shared byte budget before passing ownership downstream.
 type RateWriter struct {
 	writer  buf.Writer
-	limiter *rate.Limiter
+	limiter *subscriptionrate.Budget
 	ctx     context.Context
 	cancel  context.CancelFunc
 }
 
-func newRateWriter(ctx context.Context, writer buf.Writer, limiter *rate.Limiter) *RateWriter {
+func newRateWriter(ctx context.Context, writer buf.Writer, limiter *subscriptionrate.Budget) *RateWriter {
 	ctx, cancel := context.WithCancel(ctx)
 	return &RateWriter{writer: writer, limiter: limiter, ctx: ctx, cancel: cancel}
 }
@@ -85,7 +84,7 @@ func (w *RateWriter) Interrupt() {
 
 type rateReader struct {
 	reader     buf.Reader
-	limiter    *rate.Limiter
+	limiter    *subscriptionrate.Budget
 	ctx        context.Context
 	cancel     context.CancelFunc
 	mu         sync.Mutex
@@ -93,7 +92,7 @@ type rateReader struct {
 	pendingErr error
 }
 
-func newRateReader(ctx context.Context, reader buf.Reader, limiter *rate.Limiter) *rateReader {
+func newRateReader(ctx context.Context, reader buf.Reader, limiter *subscriptionrate.Budget) *rateReader {
 	ctx, cancel := context.WithCancel(ctx)
 	return &rateReader{reader: reader, limiter: limiter, ctx: ctx, cancel: cancel}
 }

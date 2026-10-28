@@ -24,6 +24,10 @@ $downloadJobs | Remove-Job
 
 По одному сообщению Remove-Job нельзя определить, почему задание осталось активным. Не останавливать все задания/процессы curl системы.
 
+## Автоматическая приёмка и runtime
+
+Актуальный полный сценарий: [ACCEPTANCE_TESTS.md](ACCEPTANCE_TESTS.md). После сборки можно выполнить `python3 testing/subscriptionrate/local_smoke.py --xray .\xray-lab.exe`; прежние процессы на 1080/18080/24443/10085 перед этим остановить вручную. Скрипт сам проверяет скорости/API и убирает свои процессы.
+
 ## Быстрый путь: без curl и Start-Job
 
 Оставьте запущенными HTTP fixture, серверный и клиентский Xray из предыдущей инструкции. Все три процесса работают на одном ПК; SSH не нужен.
@@ -73,7 +77,7 @@ New-NetFirewallRule -DisplayName "Electrium Xray LAN lab" -Direction Inbound -Ac
 Get-NetFirewallRule -DisplayName "Electrium Xray LAN lab" | Remove-NetFirewallRule
 ```
 
-Для TUN, REALITY/Vision и UDP/XUDP используются отдельные этапы TESTING.md. Успех этого TCP-стенда не засчитывает их автоматически.
+Для TUN и расширенной матрицы используется ACCEPTANCE_TESTS.md. REALITY/Vision и UDP/XUDP/mux дополнительно покрыты автоматическими сетевыми Go-тестами. Успех этого TCP-стенда не засчитывает их автоматически.
 
 ## Что проверено при добавлении runner
 

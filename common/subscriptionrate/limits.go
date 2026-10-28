@@ -1,7 +1,13 @@
 // Package subscriptionrate provides per-subscription, per-core rate budgets.
 package subscriptionrate
 
-import "golang.org/x/time/rate"
+import (
+	"context"
+	"errors"
+	"math"
+	"sync"
+	"time"
+)
 
 // Burst is the maximum initial credit in bytes, independent of the configured rate.
 const Burst = 8192
@@ -9,20 +15,105 @@ const Burst = 8192
 // MaxRate bounds configuration to a practical, exactly representable byte rate.
 const MaxRate = uint64(1 << 40)
 
-// Limits must be shared by all connections and identities of a subscription.
-// A nil limiter means that direction is unlimited. Limits are immutable after creation.
+var ErrDisabled = errors.New("subscription is disabled")
+
+// Limits is a stable, shared budget. Both directions exist even when unlimited,
+// so existing connections can be limited later without allowing raw-copy bypass.
+// Rates and disabled state change together under mu. Updates never replace buckets.
 type Limits struct {
-	Uplink   *rate.Limiter
-	Downlink *rate.Limiter
+	mu       sync.Mutex
+	changed  chan struct{}
+	disabled bool
+	Uplink   *Budget
+	Downlink *Budget
+}
+
+// Budget is a byte token bucket. Waiters do not reserve future credit: a policy
+// change can wake them immediately without inheriting old-rate reservations.
+type Budget struct {
+	owner  *Limits
+	rate   uint64
+	tokens float64
+	last   time.Time
 }
 
 func New(uplink, downlink uint64) *Limits {
-	return &Limits{Uplink: newLimiter(uplink), Downlink: newLimiter(downlink)}
+	l := &Limits{changed: make(chan struct{})}
+	now := time.Now()
+	l.Uplink = &Budget{owner: l, rate: uplink, tokens: Burst, last: now}
+	l.Downlink = &Budget{owner: l, rate: downlink, tokens: Burst, last: now}
+	return l
 }
 
-func newLimiter(bytesPerSecond uint64) *rate.Limiter {
-	if bytesPerSecond == 0 {
-		return nil
+func (b *Budget) refill(now time.Time) {
+	if b.rate != 0 {
+		b.tokens = math.Min(Burst, b.tokens+now.Sub(b.last).Seconds()*float64(b.rate))
 	}
-	return rate.NewLimiter(rate.Limit(bytesPerSecond), Burst)
+	b.last = now
+}
+
+// Update atomically changes both rates and admission state, preserving credit.
+// Callers validate rates against MaxRate before applying an external policy.
+func (l *Limits) Update(uplink, downlink uint64, disabled bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := time.Now()
+	l.Uplink.refill(now)
+	l.Downlink.refill(now)
+	l.Uplink.rate, l.Downlink.rate, l.disabled = uplink, downlink, disabled
+	close(l.changed)
+	l.changed = make(chan struct{})
+}
+
+// AllowN is a non-blocking debit, also useful to exhaust initial test credit.
+func (b *Budget) AllowN(now time.Time, n int) bool {
+	l := b.owner
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	b.refill(now)
+	if n < 0 || n > Burst || l.disabled {
+		return false
+	}
+	if b.rate != 0 && b.tokens < float64(n) {
+		return false
+	}
+	// Unlimited traffic cannot manufacture fresh credit on a later transition.
+	b.tokens = math.Max(0, b.tokens-float64(n))
+	return true
+}
+
+func (b *Budget) WaitN(ctx context.Context, n int) error {
+	if n < 0 || n > Burst {
+		return errors.New("rate wait exceeds burst")
+	}
+	l := b.owner
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		l.mu.Lock()
+		now := time.Now()
+		b.refill(now)
+		if l.disabled {
+			l.mu.Unlock()
+			return ErrDisabled
+		}
+		if b.rate == 0 || b.tokens >= float64(n) {
+			b.tokens = math.Max(0, b.tokens-float64(n))
+			l.mu.Unlock()
+			return nil
+		}
+		delay := time.Duration(math.Ceil((float64(n) - b.tokens) / float64(b.rate) * float64(time.Second)))
+		changed := l.changed
+		l.mu.Unlock()
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		case <-changed:
+			timer.Stop()
+		case <-timer.C:
+		}
+	}
 }

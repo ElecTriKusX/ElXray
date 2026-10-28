@@ -170,12 +170,13 @@ func (x *SystemPolicy) GetStats() *SystemPolicy_Stats {
 }
 
 type Config struct {
-	state         protoimpl.MessageState         `protogen:"open.v1"`
-	Level         map[uint32]*Policy             `protobuf:"bytes,1,rep,name=level,proto3" json:"level,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	System        *SystemPolicy                  `protobuf:"bytes,2,opt,name=system,proto3" json:"system,omitempty"`
-	Subscriptions map[string]*SubscriptionPolicy `protobuf:"bytes,3,rep,name=subscriptions,proto3" json:"subscriptions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState         `protogen:"open.v1"`
+	Level               map[uint32]*Policy             `protobuf:"bytes,1,rep,name=level,proto3" json:"level,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	System              *SystemPolicy                  `protobuf:"bytes,2,opt,name=system,proto3" json:"system,omitempty"`
+	Subscriptions       map[string]*SubscriptionPolicy `protobuf:"bytes,3,rep,name=subscriptions,proto3" json:"subscriptions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	RequireSubscription bool                           `protobuf:"varint,4,opt,name=require_subscription,json=requireSubscription,proto3" json:"require_subscription,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Config) Reset() {
@@ -229,12 +230,21 @@ func (x *Config) GetSubscriptions() map[string]*SubscriptionPolicy {
 	return nil
 }
 
+func (x *Config) GetRequireSubscription() bool {
+	if x != nil {
+		return x.RequireSubscription
+	}
+	return false
+}
+
 // Each subscription owns one shared pair of rate limiters on this core instance.
 type SubscriptionPolicy struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Emails        []string               `protobuf:"bytes,1,rep,name=emails,proto3" json:"emails,omitempty"`
 	UplinkBps     uint64                 `protobuf:"varint,2,opt,name=uplink_bps,json=uplinkBps,proto3" json:"uplink_bps,omitempty"`
 	DownlinkBps   uint64                 `protobuf:"varint,3,opt,name=downlink_bps,json=downlinkBps,proto3" json:"downlink_bps,omitempty"`
+	Revision      uint64                 `protobuf:"varint,4,opt,name=revision,proto3" json:"revision,omitempty"`
+	Disabled      bool                   `protobuf:"varint,5,opt,name=disabled,proto3" json:"disabled,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -288,6 +298,20 @@ func (x *SubscriptionPolicy) GetDownlinkBps() uint64 {
 		return x.DownlinkBps
 	}
 	return 0
+}
+
+func (x *SubscriptionPolicy) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
+}
+
+func (x *SubscriptionPolicy) GetDisabled() bool {
+	if x != nil {
+		return x.Disabled
+	}
+	return false
 }
 
 // Timeout is a message for timeout settings in various stages, in seconds.
@@ -565,23 +589,26 @@ const file_app_policy_config_proto_rawDesc = "" +
 	"\x0einbound_uplink\x18\x01 \x01(\bR\rinboundUplink\x12)\n" +
 	"\x10inbound_downlink\x18\x02 \x01(\bR\x0finboundDownlink\x12'\n" +
 	"\x0foutbound_uplink\x18\x03 \x01(\bR\x0eoutboundUplink\x12+\n" +
-	"\x11outbound_downlink\x18\x04 \x01(\bR\x10outboundDownlink\"\x85\x03\n" +
+	"\x11outbound_downlink\x18\x04 \x01(\bR\x10outboundDownlink\"\xb8\x03\n" +
 	"\x06Config\x128\n" +
 	"\x05level\x18\x01 \x03(\v2\".xray.app.policy.Config.LevelEntryR\x05level\x125\n" +
 	"\x06system\x18\x02 \x01(\v2\x1d.xray.app.policy.SystemPolicyR\x06system\x12P\n" +
-	"\rsubscriptions\x18\x03 \x03(\v2*.xray.app.policy.Config.SubscriptionsEntryR\rsubscriptions\x1aQ\n" +
+	"\rsubscriptions\x18\x03 \x03(\v2*.xray.app.policy.Config.SubscriptionsEntryR\rsubscriptions\x121\n" +
+	"\x14require_subscription\x18\x04 \x01(\bR\x13requireSubscription\x1aQ\n" +
 	"\n" +
 	"LevelEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\rR\x03key\x12-\n" +
 	"\x05value\x18\x02 \x01(\v2\x17.xray.app.policy.PolicyR\x05value:\x028\x01\x1ae\n" +
 	"\x12SubscriptionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x129\n" +
-	"\x05value\x18\x02 \x01(\v2#.xray.app.policy.SubscriptionPolicyR\x05value:\x028\x01\"n\n" +
+	"\x05value\x18\x02 \x01(\v2#.xray.app.policy.SubscriptionPolicyR\x05value:\x028\x01\"\xa6\x01\n" +
 	"\x12SubscriptionPolicy\x12\x16\n" +
 	"\x06emails\x18\x01 \x03(\tR\x06emails\x12\x1d\n" +
 	"\n" +
 	"uplink_bps\x18\x02 \x01(\x04R\tuplinkBps\x12!\n" +
-	"\fdownlink_bps\x18\x03 \x01(\x04R\vdownlinkBpsBO\n" +
+	"\fdownlink_bps\x18\x03 \x01(\x04R\vdownlinkBps\x12\x1a\n" +
+	"\brevision\x18\x04 \x01(\x04R\brevision\x12\x1a\n" +
+	"\bdisabled\x18\x05 \x01(\bR\bdisabledBO\n" +
 	"\x13com.xray.app.policyP\x01Z$github.com/xtls/xray-core/app/policy\xaa\x02\x0fXray.App.Policyb\x06proto3"
 
 var (

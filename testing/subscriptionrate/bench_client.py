@@ -22,11 +22,14 @@ def receive_exact(sock, size):
 
 
 class LabConnection(http.client.HTTPConnection):
-    def __init__(self, socks_port):
-        super().__init__("127.0.0.1", 18080, timeout=15)
+    def __init__(self, socks_port, mode="socks"):
+        super().__init__("198.18.0.1" if mode == "tun" else "127.0.0.1", 18080, timeout=15)
         self.socks_port = socks_port
+        self.mode = mode
 
     def connect(self):
+        if self.mode == "tun":
+            return super().connect()
         sock = socket.create_connection(("127.0.0.1", self.socks_port), timeout=15)
         try:
             sock.sendall(b"\x05\x01\x00")
@@ -51,8 +54,8 @@ class LabConnection(http.client.HTTPConnection):
             raise
 
 
-def transfer(index, direction, size, socks_port):
-    connection = LabConnection(socks_port)
+def transfer(index, direction, size, socks_port, mode="socks"):
+    connection = LabConnection(socks_port, mode)
     started = time.monotonic()
     try:
         if direction == "download":
@@ -86,7 +89,7 @@ def transfer(index, direction, size, socks_port):
         elif response.read(128) != f"received={size}\n".encode():
             raise OSError("Server did not confirm the complete upload")
         elapsed = time.monotonic() - started
-        return {"connection": index, "bytes": size, "seconds": round(elapsed, 3),
+        return {"connection": index, "direction": direction, "bytes": size, "finished_at": time.monotonic(), "seconds": round(elapsed, 3),
                 "Mbps": round(size * 8 / elapsed / 1_000_000, 3)}
     finally:
         connection.close()
@@ -105,20 +108,26 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--connections", type=bounded_int(1, 8), default=1)
     parser.add_argument("--bytes", type=bounded_int(1, MAX_BYTES), default=16 * 1024 * 1024)
-    parser.add_argument("--direction", choices=["download", "upload"], default="download")
+    parser.add_argument("--direction", choices=["download", "upload", "both"], default="download")
     parser.add_argument("--socks-port", type=bounded_int(1, 65535), default=1080)
+    parser.add_argument("--mode", choices=["socks", "tun"], default="socks")
     args = parser.parse_args()
     started = time.monotonic()
     try:
-        with ThreadPoolExecutor(max_workers=args.connections) as pool:
-            jobs = [pool.submit(transfer, index + 1, args.direction, args.bytes, args.socks_port)
-                    for index in range(args.connections)]
+        directions = ["download", "upload"] if args.direction == "both" else [args.direction]
+        with ThreadPoolExecutor(max_workers=args.connections * len(directions)) as pool:
+            jobs = [pool.submit(transfer, index + 1, direction, args.bytes, args.socks_port, args.mode)
+                    for direction in directions for index in range(args.connections)]
             results = [job.result() for job in jobs]
+        windows = {direction: max(item["finished_at"] for item in results if item["direction"] == direction) - started for direction in directions}
+        for item in results:
+            del item["finished_at"]
         elapsed = time.monotonic() - started
     except (OSError, http.client.HTTPException) as error:
         parser.exit(1, f"Test failed: {error}\n")
     print(json.dumps({"direction": args.direction, "results": results,
                       "aggregate_Mbps": round(sum(item["bytes"] for item in results) * 8 / elapsed / 1_000_000, 3),
+                      "aggregate_by_direction_Mbps": {direction: round(sum(item["bytes"] for item in results if item["direction"] == direction) * 8 / windows[direction] / 1_000_000, 3) for direction in directions},
                       "wall_seconds": round(elapsed, 3)}, indent=2))
 
 

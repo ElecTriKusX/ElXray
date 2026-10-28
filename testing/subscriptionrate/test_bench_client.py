@@ -1,7 +1,8 @@
 import argparse
 import unittest
+from unittest.mock import patch
 
-from bench_client import bounded_int, receive_exact
+from bench_client import LabConnection, bounded_int, receive_exact
 
 
 class PartialSocket:
@@ -17,6 +18,13 @@ class ClientTest(unittest.TestCase):
         self.assertEqual(receive_exact(PartialSocket([b"\x05", b"\x00"]), 2), b"\x05\x00")
         with self.assertRaises(OSError):
             receive_exact(PartialSocket([b"\x05"]), 2)
+
+    def test_tun_has_no_socks_or_direct_fallback(self):
+        with patch("socket.create_connection", side_effect=OSError("route unavailable")) as connect:
+            with self.assertRaises(OSError):
+                LabConnection(1080, "tun").connect()
+            self.assertEqual(connect.call_count, 1)
+            self.assertEqual(connect.call_args.args[0], ("198.18.0.1", 18080))
 
     def test_parameter_bounds(self):
         parse = bounded_int(1, 8)

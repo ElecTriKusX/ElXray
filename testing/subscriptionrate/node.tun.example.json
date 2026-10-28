@@ -1,0 +1,70 @@
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "api": {
+    "tag": "lab-api",
+    "listen": "127.0.0.1:10085",
+    "services": [
+      "StatsService",
+      "SubscriptionService"
+    ]
+  },
+  "stats": {},
+  "policy": {
+    "requireSubscription": true,
+    "levels": {
+      "0": {
+        "statsUserUplink": true,
+        "statsUserDownlink": true
+      }
+    },
+    "subscriptions": {
+      "lab-account": {
+        "emails": [
+          "lab@example"
+        ],
+        "uplinkBps": 625000,
+        "downlinkBps": 1250000
+      }
+    }
+  },
+  "inbounds": [
+    {
+      "tag": "lab-vless",
+      "listen": "127.0.0.1",
+      "port": 24443,
+      "protocol": "vless",
+      "settings": {
+        "decryption": "none",
+        "clients": [
+          {
+            "id": "d46a23ea-902b-4fde-a501-7a98ce19be2a",
+            "email": "lab@example"
+          }
+        ]
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {
+        "finalRules": [
+          {
+            "action": "allow",
+            "network": "tcp",
+            "ip": [
+              "127.0.0.1/32"
+            ],
+            "port": "18080"
+          },
+          {
+            "action": "block"
+          }
+        ],
+        "redirect": "127.0.0.1:18080"
+      }
+    }
+  ]
+}
