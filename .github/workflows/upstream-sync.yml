@@ -1,0 +1,48 @@
+name: Sync Xray upstream release
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/upstream-sync.yml'
+      - '.github/scripts/sync_upstream.py'
+      - '.github/scripts/test_sync_upstream.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: upstream-release-sync
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test update preparation without GitHub credentials
+        run: python3 -m unittest discover -s .github/scripts -p test_sync_upstream.py -v
+
+  sync:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
+    steps:
+      - name: Verify token is configured
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo '::error::Add UPSTREAM_SYNC_TOKEN in Settings > Secrets and variables > Actions.'
+            exit 1
+          fi
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
+      - name: Prepare upstream release pull request
+        run: python3 .github/scripts/sync_upstream.py
