@@ -13,6 +13,8 @@ var CmdAPI = &base.Command{
 	Commands: []*base.Command{
 		cmdRestartLogger,
 		cmdGetStats,
+		cmdSubscriptionGet,
+		cmdSubscriptionSet,
 		cmdQueryStats,
 		cmdSysStats,
 		cmdBalancerInfo,

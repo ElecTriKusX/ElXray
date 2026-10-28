@@ -1,11 +1,13 @@
 package conf
 
 import (
+	"net"
 	"strings"
 
 	"github.com/xtls/xray-core/app/commander"
 	loggerservice "github.com/xtls/xray-core/app/log/command"
 	observatoryservice "github.com/xtls/xray-core/app/observatory/command"
+	policyservice "github.com/xtls/xray-core/app/policy/command"
 	handlerservice "github.com/xtls/xray-core/app/proxyman/command"
 	routerservice "github.com/xtls/xray-core/app/router/command"
 	statsservice "github.com/xtls/xray-core/app/stats/command"
@@ -33,6 +35,15 @@ func (c *APIConfig) Build() (*commander.Config, error) {
 			services = append(services, serial.ToTypedMessage(&handlerservice.Config{}))
 		case "loggerservice":
 			services = append(services, serial.ToTypedMessage(&loggerservice.Config{}))
+		case "subscriptionservice":
+			if !strings.HasPrefix(c.Listen, "/") && !strings.HasPrefix(c.Listen, "@") {
+				host, _, err := net.SplitHostPort(c.Listen)
+				ip := net.ParseIP(host)
+				if err != nil || ip == nil || !ip.IsLoopback() {
+					return nil, errors.New("SubscriptionService requires an explicit loopback or Unix API listen address")
+				}
+			}
+			services = append(services, serial.ToTypedMessage(&policyservice.Config{}))
 		case "statsservice":
 			services = append(services, serial.ToTypedMessage(&statsservice.Config{}))
 		case "observatoryservice":

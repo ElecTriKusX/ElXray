@@ -1,0 +1,37 @@
+name: Subscription policy regression
+
+on:
+  push:
+    branches: [main, subscription-policy]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  local-regression:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Race regression and local transport matrix
+        run: go test -race ./common/subscriptionrate ./app/dispatcher ./app/policy ./app/policy/command ./common/buf ./proxy ./testing/subscriptionrate -count=1 -timeout 120s
+      - name: Config and local API safety without geodata
+        run: go test -race ./infra/conf -run '^TestSubscription' -count=1 -timeout 90s
+      - name: TLS certificate reload race regression without external ECH
+        run: go test -race ./transport/internet/tls -run '^TestCertificate' -count=1 -timeout 30s
+      - name: Vet selected packages
+        run: go vet ./common/subscriptionrate ./app/dispatcher ./app/policy ./app/policy/command ./common/buf ./proxy ./testing/subscriptionrate ./main/commands/all/api
+      - name: Python fixture regression
+        run: python -m unittest discover -s testing/subscriptionrate -p 'test_*.py' -v
+      - name: Build lab executable
+        run: go build -o xray-lab.exe ./main
+      - name: Three-process smoke and runtime CLI
+        run: python testing/subscriptionrate/local_smoke.py --xray ./xray-lab.exe

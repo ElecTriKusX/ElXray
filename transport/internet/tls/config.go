@@ -48,6 +48,15 @@ func (c *Config) loadSelfCertPool() (*x509.CertPool, error) {
 
 // BuildCertificates builds a list of TLS certificates from proto definition.
 func (c *Config) BuildCertificates() []*tls.Certificate {
+	// Export a stable snapshot; the live selector uses the synchronized store below.
+	access := new(sync.RWMutex)
+	certs := c.buildCertificates(access)
+	access.RLock()
+	defer access.RUnlock()
+	return slices.Clone(certs)
+}
+
+func (c *Config) buildCertificates(access *sync.RWMutex) []*tls.Certificate {
 	certs := make([]*tls.Certificate, 0, len(c.Certificate))
 	for _, entry := range c.Certificate {
 		if entry.Usage != Certificate_ENCIPHERMENT {
@@ -67,13 +76,23 @@ func (c *Config) BuildCertificates() []*tls.Certificate {
 			return &keyPair
 		}
 		if keyPair := getX509KeyPair(); keyPair != nil {
+			access.Lock()
 			certs = append(certs, keyPair)
+			access.Unlock()
 		} else {
 			continue
 		}
 		index := len(certs) - 1
 		setupOcspTicker(entry, func(isReloaded, isOcspstapling bool) {
-			cert := certs[index]
+			if !isReloaded && !isOcspstapling {
+				return
+			}
+			access.RLock()
+			current := certs[index]
+			access.RUnlock()
+			// TLS may be using current in an ongoing handshake. Never mutate it in place.
+			copyOfCert := *current
+			cert := &copyOfCert
 			if isReloaded {
 				if newKeyPair := getX509KeyPair(); newKeyPair != nil {
 					cert = newKeyPair
@@ -88,7 +107,9 @@ func (c *Config) BuildCertificates() []*tls.Certificate {
 					cert.OCSPStaple = newOCSPData
 				}
 			}
+			access.Lock()
 			certs[index] = cert
+			access.Unlock()
 		})
 	}
 	return certs
@@ -244,8 +265,10 @@ func getGetCertificateFunc(c *tls.Config, ca []*Certificate) func(hello *tls.Cli
 	}
 }
 
-func getNewGetCertificateFunc(certs []*tls.Certificate, rejectUnknownSNI bool) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+func getNewGetCertificateFunc(certs []*tls.Certificate, rejectUnknownSNI bool, access *sync.RWMutex) func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
 	return func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+		access.RLock()
+		defer access.RUnlock()
 		if len(certs) == 0 {
 			return nil, errNoCertificates
 		}
@@ -412,7 +435,8 @@ func (c *Config) GetTLSConfig(opts ...Option) *tls.Config {
 	if len(caCerts) > 0 {
 		config.GetCertificate = getGetCertificateFunc(config, caCerts)
 	} else {
-		config.GetCertificate = getNewGetCertificateFunc(c.BuildCertificates(), c.RejectUnknownSni)
+		access := new(sync.RWMutex)
+		config.GetCertificate = getNewGetCertificateFunc(c.buildCertificates(access), c.RejectUnknownSni, access)
 	}
 
 	if sn := c.parseServerName(); len(sn) > 0 {

@@ -737,6 +737,11 @@ func CopyRawConnIfExist(ctx context.Context, readerConn net.Conn, writerConn net
 	readerConn, readCounter, _ := UnwrapRawConn(readerConn)
 	writerConn, _, writeCounter := UnwrapRawConn(writerConn)
 	reader := buf.NewReader(readerConn)
+	// A subscription rate writer must see every byte, including Vision's direct
+	// copy phase. Splice writes to the socket directly and would skip its budget.
+	if guarded, ok := writer.(interface{ RequiresBufferedCopy() bool }); ok && guarded.RequiresBufferedCopy() {
+		return readV(ctx, reader, writer, timer, readCounter)
+	}
 	if runtime.GOOS != "linux" && runtime.GOOS != "android" {
 		return readV(ctx, reader, writer, timer, readCounter)
 	}
