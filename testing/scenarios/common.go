@@ -251,19 +251,18 @@ func testTCPConn2(conn net.Conn, payloadSize int, timeout time.Duration) func() 
 	}
 }
 
+// WaitConnAvailableWithTest allows a spawned core process to open its listener.
+// A ten-millisecond retry loop can exhaust all attempts before Windows starts it.
 func WaitConnAvailableWithTest(t *testing.T, testFunc func() error) bool {
-	for i := 1; ; i++ {
-		if i > 10 {
-			t.Log("All attempts failed to test tcp conn")
+	deadline := time.Now().Add(10 * time.Second)
+	for attempt := 1; ; attempt++ {
+		if err := testFunc(); err == nil {
+			t.Log("success with", attempt, "attempts")
+			return true
+		} else if !time.Now().Before(deadline) {
+			t.Log("connection did not become ready:", err)
 			return false
 		}
-		time.Sleep(time.Millisecond * 10)
-		if err := testFunc(); err != nil {
-			t.Log("err ", err)
-		} else {
-			t.Log("success with", i, "attempts")
-			break
-		}
+		time.Sleep(100 * time.Millisecond)
 	}
-	return true
 }
