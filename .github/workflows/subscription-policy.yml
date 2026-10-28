@@ -2,7 +2,7 @@ name: Subscription policy regression
 
 on:
   push:
-    branches: [main, codex/subscription-rate-limit]
+    branches: [main, subscription-policy]
   pull_request:
 
 permissions:

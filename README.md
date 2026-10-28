@@ -1,249 +1,105 @@
-# Project X
+# ElXray
 
-[Project X](https://github.com/XTLS) originates from XTLS protocol, providing a set of network tools such as [Xray-core](https://github.com/XTLS/Xray-core) and [REALITY](https://github.com/XTLS/REALITY).
+ElXray — форк [XTLS/Xray-core](https://github.com/XTLS/Xray-core) с общими лимитами скорости подписки и локальным API управления ими без перезапуска соединений. Лицензия — [MPL-2.0](LICENSE); исходные уведомления об авторских правах сохранены.
 
-[README](https://github.com/XTLS/Xray-core#readme) is open, so feel free to submit your project [here](https://github.com/XTLS/Xray-core/pulls).
+## Возможности
 
-## Sponsors
+- Одна подписка объединяет несколько серверных email в общий бюджет.
+- Upload и download ограничиваются независимо внутри одного экземпляра ядра.
+- Параллельные подключения и разные IP не умножают доступную полосу.
+- Runtime API применяет новые скорости к существующим соединениям, включая переход из unlimited в limited.
+- Ревизии политик защищают от устаревших обновлений; точный повтор принятого запроса безопасен.
+- Блокировка подписки через `disabled`, запрет пользователей без назначенной политики через `requireSubscription`.
+- Защита от обхода бюджета через raw socket splice, включая Vision; сохранение guard под обёрткой статистики.
+- Исправлена гонка обновления TLS-сертификатов с выбором сертификата во время handshake.
 
-[![Remnawave](https://github.com/user-attachments/assets/a22d34ae-01ee-441c-843a-85356748ed1e)](https://docs.rw)
+Бюджет действует на один процесс/ноду. Учитываются байты диспетчера, а не сетевые заголовки, padding и retransmission. Равные доли между потоками не гарантируются. Эти функции не определяют количество физических устройств.
 
-[![Happ](https://github.com/user-attachments/assets/14055dab-e8bb-48bd-89e8-962709e4098e)](https://happ.su)
+## Сборка
 
-[![BlancVPN](https://github.com/user-attachments/assets/9145ea7d-5da3-446e-8143-710dba4292c3)](https://blanc.link/VMTSDqW)
-
-[**Sponsor Xray-core**](https://github.com/XTLS/Xray-core/issues/3668)
-
-## Donation & NFTs
-
-### [Collect a Project X NFT to support the development of Project X!](https://opensea.io/item/ethereum/0x5ee362866001613093361eb8569d59c4141b76d1/1)
-
-[<img alt="Project X NFT" width="150px" src="https://raw2.seadn.io/ethereum/0x5ee362866001613093361eb8569d59c4141b76d1/7fa9ce900fb39b44226348db330e32/8b7fa9ce900fb39b44226348db330e32.svg" />](https://opensea.io/item/ethereum/0x5ee362866001613093361eb8569d59c4141b76d1/1)
-
-- **TRX(Tron)/USDT/USDC: `TNrDh5VSfwd4RPrwsohr6poyNTfFefNYan`**
-- **TON: `UQApeV-u2gm43aC1uP76xAC1m6vCylstaN1gpfBmre_5IyTH`**
-- **BTC: `1JpqcziZZuqv3QQJhZGNGBVdCBrGgkL6cT`**
-- **XMR: `4ABHQZ3yJZkBnLoqiKvb3f8eqUnX4iMPb6wdant5ZLGQELctcerceSGEfJnoCk6nnyRZm73wrwSgvZ2WmjYLng6R7sR67nq`**
-- **SOL/USDT/USDC: `3x5NuXHzB5APG6vRinPZcsUv5ukWUY1tBGRSJiEJWtZa`**
-- **ETH/USDT/USDC: `0xDc3Fe44F0f25D13CACb1C4896CD0D321df3146Ee`**
-- **Project X NFT: https://opensea.io/item/ethereum/0x5ee362866001613093361eb8569d59c4141b76d1/1**
-- **VLESS NFT: https://opensea.io/collection/vless**
-- **REALITY NFT: https://opensea.io/item/ethereum/0x5ee362866001613093361eb8569d59c4141b76d1/2**
-- **Related links: [VLESS Post-Quantum Encryption](https://github.com/XTLS/Xray-core/pull/5067), [XHTTP: Beyond REALITY](https://github.com/XTLS/Xray-core/discussions/4113), [Announcement of NFTs by Project X](https://github.com/XTLS/Xray-core/discussions/3633)**
-
-## License
-
-[Mozilla Public License Version 2.0](https://github.com/XTLS/Xray-core/blob/main/LICENSE)
-
-## Documentation
-
-[Project X Official Website](https://xtls.github.io)
-
-## Telegram
-
-[Project X](https://t.me/projectXray)
-
-[Project X Channel](https://t.me/projectXtls)
-
-[Project VLESS](https://t.me/projectVless) (Русский)
-
-[Project XHTTP](https://t.me/projectXhttp) (Persian)
-
-## Installation
-
-- Linux Script
-  - [XTLS/Xray-install](https://github.com/XTLS/Xray-install) (**Official**)
-  - [tempest](https://github.com/team-cloudchaser/tempest) (supports [`systemd`](https://systemd.io) and [OpenRC](https://github.com/OpenRC/openrc); Linux-only)
-- Docker
-  - [ghcr.io/xtls/xray-core](https://ghcr.io/xtls/xray-core) (**Official**)
-  - [teddysun/xray](https://hub.docker.com/r/teddysun/xray)
-  - [wulabing/xray_docker](https://github.com/wulabing/xray_docker)
-- Web Panel
-  - [Remnawave](https://github.com/remnawave/panel)
-  - [3X-UI](https://github.com/MHSanaei/3x-ui)
-  - [PasarGuard](https://github.com/PasarGuard/panel)
-  - [Xray-UI](https://github.com/qist/xray-ui)
-  - [X-Panel](https://github.com/xeefei/X-Panel)
-  - [Marzban](https://github.com/Gozargah/Marzban)
-  - [Hiddify](https://github.com/hiddify/Hiddify-Manager)
-  - [TX-UI](https://github.com/AghayeCoder/tx-ui)
-  - [CELERITY](https://github.com/ClickDevTech/CELERITY-panel)
-- One Click
-  - [Xray-REALITY](https://github.com/zxcvos/Xray-script), [xray-reality](https://github.com/sajjaddg/xray-reality), [reality-ezpz](https://github.com/aleskxyz/reality-ezpz)
-  - [Xray_bash_onekey](https://github.com/hello-yunshu/Xray_bash_onekey), [XTool](https://github.com/LordPenguin666/XTool), [VPainLess](https://github.com/vpainless/vpainless)
-  - [v2ray-agent](https://github.com/mack-a/v2ray-agent), [Xray_onekey](https://github.com/wulabing/Xray_onekey), [ProxySU](https://github.com/proxysu/ProxySU)
-- Magisk
-  - [Magic_V2Ray](https://github.com/vincentng295/Magic_V2Ray)
-  - [Xray_For_Magisk](https://github.com/E7KMbb/Xray_For_Magisk)
-- Homebrew
-  - `brew install xray`
-
-## Usage
-
-- Example
-  - [VLESS-XTLS-uTLS-REALITY](https://github.com/XTLS/REALITY#readme)
-  - [VLESS-TCP-XTLS-Vision](https://github.com/XTLS/Xray-examples/tree/main/VLESS-TCP-XTLS-Vision)
-  - [All-in-One-fallbacks-Nginx](https://github.com/XTLS/Xray-examples/tree/main/All-in-One-fallbacks-Nginx)
-- Xray-examples
-  - [XTLS/Xray-examples](https://github.com/XTLS/Xray-examples)
-  - [chika0801/Xray-examples](https://github.com/chika0801/Xray-examples)
-  - [lxhao61/integrated-examples](https://github.com/lxhao61/integrated-examples)
-- Tutorial
-  - [XTLS Vision](https://github.com/chika0801/Xray-install)
-  - [REALITY (English)](https://cscot.pages.dev/2023/03/02/Xray-REALITY-tutorial/)
-  - [XTLS-Iran-Reality (English)](https://github.com/SasukeFreestyle/XTLS-Iran-Reality)
-  - [Xray REALITY with 'steal oneself' (English)](https://computerscot.github.io/vless-xtls-utls-reality-steal-oneself.html)
-  - [Xray with WireGuard inbound (English)](https://g800.pages.dev/wireguard)
-
-## GUI Clients
-
-- OpenWrt
-  - [PassWall](https://github.com/Openwrt-Passwall/openwrt-passwall), [PassWall 2](https://github.com/Openwrt-Passwall/openwrt-passwall2)
-  - [ShadowSocksR Plus+](https://github.com/fw876/helloworld)
-  - [luci-app-xray](https://github.com/yichya/luci-app-xray) ([openwrt-xray](https://github.com/yichya/openwrt-xray))
-- Asuswrt-Merlin
-  - [XRAYUI](https://github.com/DanielLavrushin/asuswrt-merlin-xrayui)
-  - [fancyss](https://github.com/hq450/fancyss)
-- Windows
-  - [v2rayN](https://github.com/2dust/v2rayN)
-  - [Furious](https://github.com/LorenEteval/Furious)
-  - [Invisible Man - Xray](https://github.com/InvisibleManVPN/InvisibleMan-XRayClient)
-  - [AnyPortal](https://github.com/AnyPortal/AnyPortal)
-  - [GenyConnect](https://github.com/genyleap/GenyConnect)
-  - [OneXray](https://github.com/OneXray/OneXray)
-  - [XrayUI-dev](https://github.com/PhoenixNil/XrayUI-dev)
-- Android
-  - [v2rayNG](https://github.com/2dust/v2rayNG)
-  - [X-flutter](https://github.com/XTLS/X-flutter)
-  - [SaeedDev94/Xray](https://github.com/SaeedDev94/Xray)
-  - [SimpleXray](https://github.com/lhear/SimpleXray)
-  - [XrayFA](https://github.com/Q7DF1/XrayFA)
-  - [AnyPortal](https://github.com/AnyPortal/AnyPortal)
-  - [OneXray](https://github.com/OneXray/OneXray)
-  - [AsteriskNG](https://github.com/Asterisk4Magisk/AsteriskNG)
-- iOS & macOS arm64 & tvOS
-  - [Happ](https://apps.apple.com/app/happ-proxy-utility/id6504287215) | [Happ RU](https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973) | [Happ tvOS](https://apps.apple.com/us/app/happ-proxy-utility-for-tv/id6748297274)
-  - [Streisand](https://apps.apple.com/app/streisand/id6450534064)
-  - [OneXray](https://github.com/OneXray/OneXray)
-  - [INCY](https://apps.apple.com/en/app/incy/id6756943388)
-- macOS arm64 & x64
-  - [Happ](https://apps.apple.com/app/happ-proxy-utility/id6504287215) | [Happ RU](https://apps.apple.com/ru/app/happ-proxy-utility-plus/id6746188973)
-  - [V2rayU](https://github.com/yanue/V2rayU)
-  - [V2RayXS](https://github.com/tzmax/V2RayXS)
-  - [Furious](https://github.com/LorenEteval/Furious)
-  - [OneXray](https://github.com/OneXray/OneXray)
-  - [GoXRay](https://github.com/goxray/desktop)
-  - [AnyPortal](https://github.com/AnyPortal/AnyPortal)
-  - [v2rayN](https://github.com/2dust/v2rayN)
-  - [GenyConnect](https://github.com/genyleap/GenyConnect)
-  - [INCY](https://apps.apple.com/en/app/incy/id6756943388)
-- Linux
-  - [v2rayA](https://github.com/v2rayA/v2rayA)
-  - [Furious](https://github.com/LorenEteval/Furious)
-  - [GorzRay](https://github.com/ketetefid/GorzRay)
-  - [GoXRay](https://github.com/goxray/desktop)
-  - [AnyPortal](https://github.com/AnyPortal/AnyPortal)
-  - [v2rayN](https://github.com/2dust/v2rayN)
-  - [GenyConnect](https://github.com/genyleap/GenyConnect)
-  - [OneXray](https://github.com/OneXray/OneXray)
-- HarmonyOS
-  - [Hey](https://github.com/popsiclelmlm/Hey)
-
-## Others that support VLESS, XTLS, REALITY, XUDP, PLUX...
-
-- iOS & macOS arm64 & tvOS
-  - [Anywhere](https://github.com/NodePassProject/Anywhere)
-  - [Shadowrocket](https://apps.apple.com/app/shadowrocket/id932747118)
-  - [Loon](https://apps.apple.com/us/app/loon/id1373567447)
-  - [Egern](https://apps.apple.com/us/app/egern/id1616105820)
-  - [Quantumult X](https://apps.apple.com/us/app/quantumult-x/id1443988620)
-- Xray Tools
-  - [xray-knife](https://github.com/lilendian0x00/xray-knife)
-  - [xray-checker](https://github.com/kutovoys/xray-checker)
-- Xray Wrapper
-  - [XTLS/libXray](https://github.com/XTLS/libXray)
-  - [xtls-sdk](https://github.com/remnawave/xtls-sdk)
-  - [xtlsapi](https://github.com/hiddify/xtlsapi)
-  - [AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite)
-  - [flutter_vless](https://github.com/XIIIFOX/flutter_vless)
-  - [Xray-core-python](https://github.com/LorenEteval/Xray-core-python)
-  - [xray-api](https://github.com/XVGuardian/xray-api)
-- [XrayR](https://github.com/XrayR-project/XrayR)
-  - [XrayR-release](https://github.com/XrayR-project/XrayR-release)
-  - [XrayR-V2Board](https://github.com/missuo/XrayR-V2Board)
-- Cores
-  - [Amnezia VPN](https://github.com/amnezia-vpn)
-  - [mihomo](https://github.com/MetaCubeX/mihomo)
-  - [sing-box](https://github.com/SagerNet/sing-box)
-
-## Contributing
-
-[Code of Conduct](https://github.com/XTLS/Xray-core/blob/main/CODE_OF_CONDUCT.md)
-
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/XTLS/Xray-core)
-
-## Credits
-
-- [Xray-core v1.0.0](https://github.com/XTLS/Xray-core/releases/tag/v1.0.0) was forked from [v2fly-core 9a03cc5](https://github.com/v2fly/v2ray-core/commit/9a03cc5c98d04cc28320fcee26dbc236b3291256), and we have made & accumulated a huge number of enhancements over time, check [the release notes for each version](https://github.com/XTLS/Xray-core/releases).
-- For third-party projects used in [Xray-core](https://github.com/XTLS/Xray-core), check your local or [the latest go.mod](https://github.com/XTLS/Xray-core/blob/main/go.mod).
-
-### Bundled Third-Party Components Redistribution
-
-**Certain optional features dynamically load third-party components. These optional components are separate works distributed under their own licenses, and are bundled into the ZIP package for ease of use. Users may replace these components under the licenses from these components.**
-
-These components include:
-
-#### Wintun
-
-This distribution contains unmodified official precompiled and pre-signed Wintun binaries.
-
-- Project: Wintun
-- Copyright: Copyright (C) 2018-2021 WireGuard LLC. All Rights Reserved.
-- Redistribution License: Prebuilt Binaries License (PBL) bundled with official precompiled and pre-signed binaries from wintun.net
-- Component(s): wintun.dll
-- Source: https://www.wintun.net/
-- Included in:
-  - Windows x86 (windows-32, win7-32)
-  - Windows x86-64 (windows-64, win7-64)
-  - Windows AArch64 (windows-arm64)
-- Notes: Wintun is an optional runtime-loaded component only used for TUN inbound functionality on supported Windows platforms.
-
-## One-line Compilation
-
-### Windows (PowerShell)
+Нужна версия Go из [go.mod](go.mod) или совместимая более новая версия.
 
 ```powershell
-$env:CGO_ENABLED=0
-go build -o xray.exe -trimpath -buildvcs=false -ldflags="-s -w -buildid=" -v ./main
+go build -o elxray.exe ./main
+.\elxray.exe version
+.\elxray.exe run -config config.json
 ```
 
-### Linux / macOS
+Linux/macOS:
 
-```bash
-CGO_ENABLED=0 go build -o xray -trimpath -buildvcs=false -ldflags="-s -w -buildid=" -v ./main
+```sh
+go build -o elxray ./main
+./elxray run -config config.json
 ```
 
-### Reproducible Releases
+Go module path `github.com/xtls/xray-core` и protobuf namespace сохранены для совместимости исходников и SDK. Название продукта и сборок — ElXray. При интеграции с менеджером процессов учитывайте ожидаемое им имя исполняемого файла.
 
-Make sure that you are using the same Go version, and remember to set the git commit id (7 bytes):
+## Настройка лимитов
 
-```bash
-CGO_ENABLED=0 go build -o xray -trimpath -buildvcs=false -gcflags="all=-l=4" -ldflags="-X github.com/xtls/xray-core/core.build=REPLACE -s -w -buildid=" -v ./main
+Добавьте в существующий серверный конфиг, сохраняя остальные поля `policy`:
+
+```json
+{
+  "policy": {
+    "requireSubscription": true,
+    "subscriptions": {
+      "account-123": {
+        "emails": ["account-123@example"],
+        "uplinkBps": 625000,
+        "downlinkBps": 1250000,
+        "revision": 1,
+        "disabled": false
+      }
+    }
+  }
+}
 ```
 
-For Android:
+Это фрагмент, не полный серверный конфиг. Email должен совпадать с email аутентифицированного серверного пользователя; это не адрес, передаваемый клиентом в HTTP-заголовке. Регистр нормализуется, дубликаты email отклоняются.
 
-```bash
-GOOS=android GOARCH=arm64 CGO_ENABLED=1 CC=/path/to/aarch64-linux-android24-clang go build -o xray -trimpath -buildvcs=false -gcflags="all=-l=4" -ldflags="-X github.com/xtls/xray-core/core.build=REPLACE -s -w -buildid= -checklinkname=0" -v ./main
-GOOS=android GOARCH=amd64 CGO_ENABLED=1 CC=/path/to/x86_64-linux-android24-clang go build -o xray -trimpath -buildvcs=false -gcflags="all=-l=4" -ldflags="-X github.com/xtls/xray-core/core.build=REPLACE -s -w -buildid= -checklinkname=0" -v ./main
+`Bps` — **байты в секунду**. Мбит/с × 1 000 000 / 8. Пример задаёт 5 Мбит/с upload и 10 Мбит/с download со стороны клиента. Одновременно разрешены обе скорости. Чтобы получить 100 Мбит/с в каждом направлении, задайте оба значения `12500000`; общий бюджет up+down не используется.
+
+`0` означает unlimited для направления, `disabled: true` запрещает передачу в обоих направлениях. `requireSubscription: true` блокирует аутентифицированных пользователей без привязки, включая пустой email. Без этого флага неизвестные email сохраняют upstream-поведение.
+
+Начальный burst — 8192 байта, максимум направления — 2^40 байт/с. Обновление политики не выдаёт новый burst. UDP-датаграммы сохраняются целиком; pacing средней скорости не является жёстким packet policing.
+
+## Runtime API
+
+```json
+"api": {
+  "tag": "api",
+  "listen": "127.0.0.1:10085",
+  "services": ["StatsService", "SubscriptionService"]
+}
 ```
 
-If you are compiling a 32-bit MIPS/MIPSLE target, use this command instead:
+API допускается только на явном loopback-адресе или защищённом Unix socket. Локальные процессы считаются доверенными; штатный Commander не проверяет пароль локального пользователя. Не публикуйте API в LAN/Интернет.
 
-```bash
-CGO_ENABLED=0 go build -o xray -trimpath -buildvcs=false -gcflags="-l=4" -ldflags="-X github.com/xtls/xray-core/core.build=REPLACE -s -w -buildid=" -v ./main
+```powershell
+.\elxray.exe api subscription-get --server=127.0.0.1:10085 --id=account-123
+.\elxray.exe api subscription-set --server=127.0.0.1:10085 --id=account-123 --expected-revision=1 --revision=2 --uplink-bps=312500 --downlink-bps=625000 --disabled=false
 ```
 
-## Stargazers over time
+Обе скорости и disabled обязательны. Новая revision равна expected-revision + 1. Устаревший запрос с другой политикой отклоняется; некорректное обновление сохраняет действующее состояние.
 
-[![Stargazers over time](https://starchart.cc/XTLS/Xray-core.svg)](https://starchart.cc/XTLS/Xray-core)
+**Runtime-изменения находятся в памяти.** Управляющий процесс обязан сохранять политику и формировать стартовый JSON с актуальными скоростями, revision и disabled. Ядро не перезаписывает конфиг. Создание/изменение email-привязок требует изменения стартового конфига и рестарта. Disabled не является отзывом UUID и не гарантирует мгновенного закрытия каждого idle socket.
+
+Подробности: [контракт API](docs/electrium/RUNTIME_API.md) и [семантика лимитов](docs/electrium/SUBSCRIPTION_RATE_LIMIT.md).
+
+## Проверка
+
+```powershell
+go test -race ./common/subscriptionrate ./app/dispatcher ./app/policy ./app/policy/command ./common/buf ./proxy ./testing/subscriptionrate -count=1 -timeout 120s
+go test -race ./infra/conf -run '^TestSubscription' -count=1 -timeout 90s
+go test -race ./transport/internet/tls -run '^TestCertificate' -count=1 -timeout 30s
+python3 -m unittest discover -s testing/subscriptionrate -p 'test_*.py' -v
+python3 testing/subscriptionrate/local_smoke.py --xray .\elxray.exe
+```
+
+Для race detector нужен поддерживаемый C toolchain. Для полного `go test ./...` нужны `resources/geoip.dat` и `resources/geosite.dat`; часть upstream-тестов также обращается к внешней сети. CI скачивает assets с проверкой SHA-256, не полагаясь на ранее заполненный кэш и права запуска другого workflow. Windows 7 использует отдельный patched toolchain; такая сборка не означает проверки на реальной Windows 7.
+
+Smoke сам запускает HTTP fixture и два процесса ядра на loopback с временным UUID, проверяет общий бюджет, одновременный upload/download, API retry/conflict/disable/unlimited и останавливает собственные процессы. Перед запуском освободите лабораторные порты 1080, 18080, 24443 и 10085.
+
+Сетевые тесты покрывают VLESS TCP, UDP, UDP mux, XUDP, TCP mux и Vision поверх TLS/REALITY с локальным TLS target. Успех этой матрицы не является проверкой всех транспортных сочетаний или длительной нагрузки.
+
+[Ручной стенд на одном ПК и двух устройствах](testing/subscriptionrate/README.md).
