@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/xtls/xray-core/common/platform"
+	"github.com/xtls/xray-core/common/subscriptionrate"
 	"github.com/xtls/xray-core/features"
 )
 
@@ -74,6 +75,11 @@ type Manager interface {
 
 	// ForSystem returns the System policy for Xray system.
 	ForSystem() System
+}
+
+// SubscriptionManager is an optional extension; existing policy managers remain compatible.
+type SubscriptionManager interface {
+	ForEmail(email string) *subscriptionrate.Limits
 }
 
 // ManagerType returns the type of Manager interface. Can be used to implement common.HasType.

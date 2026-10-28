@@ -71,8 +71,15 @@ func (p *SystemPolicy) Build() (*policy.SystemPolicy, error) {
 }
 
 type PolicyConfig struct {
-	Levels map[uint32]*Policy `json:"levels"`
-	System *SystemPolicy      `json:"system"`
+	Levels        map[uint32]*Policy             `json:"levels"`
+	System        *SystemPolicy                  `json:"system"`
+	Subscriptions map[string]*SubscriptionPolicy `json:"subscriptions"`
+}
+
+type SubscriptionPolicy struct {
+	Emails      []string `json:"emails"`
+	UplinkBps   uint64   `json:"uplinkBps"`
+	DownlinkBps uint64   `json:"downlinkBps"`
 }
 
 func (c *PolicyConfig) Build() (*policy.Config, error) {
@@ -87,7 +94,18 @@ func (c *PolicyConfig) Build() (*policy.Config, error) {
 		}
 	}
 	config := &policy.Config{
-		Level: levels,
+		Level:         levels,
+		Subscriptions: make(map[string]*policy.SubscriptionPolicy),
+	}
+	for id, p := range c.Subscriptions {
+		if p != nil {
+			config.Subscriptions[id] = &policy.SubscriptionPolicy{Emails: p.Emails, UplinkBps: p.UplinkBps, DownlinkBps: p.DownlinkBps}
+		} else {
+			config.Subscriptions[id] = nil
+		}
+	}
+	if _, err := policy.BuildSubscriptionRates(config.Subscriptions); err != nil {
+		return nil, err
 	}
 
 	if c.System != nil {

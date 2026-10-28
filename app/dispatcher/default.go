@@ -86,9 +86,7 @@ func (r *cachedReader) Interrupt() {
 		r.cache = buf.ReleaseMulti(r.cache)
 	}
 	r.Unlock()
-	if p, ok := r.reader.(*pipe.Reader); ok {
-		p.Interrupt()
-	}
+	common.Interrupt(r.reader)
 }
 
 // DefaultDispatcher is a default implementation of Dispatcher.
@@ -184,6 +182,14 @@ func (d *DefaultDispatcher) getLink(ctx context.Context) (*transport.Link, *tran
 		}
 	}
 
+	if limits := subscriptionLimits(ctx, d.policy); limits != nil {
+		if limits.Uplink != nil {
+			inboundLink.Writer = newRateWriter(ctx, inboundLink.Writer, limits.Uplink)
+		}
+		if limits.Downlink != nil {
+			outboundLink.Writer = newRateWriter(ctx, outboundLink.Writer, limits.Downlink)
+		}
+	}
 	return inboundLink, outboundLink
 }
 
@@ -218,6 +224,15 @@ func WrapLink(ctx context.Context, policyManager policy.Manager, statsManager st
 		}
 	}
 
+	if limits := subscriptionLimits(ctx, policyManager); limits != nil {
+		if limits.Uplink != nil {
+			reader := link.Reader.(*buf.TimeoutWrapperReader)
+			reader.Reader = newRateReader(ctx, reader.Reader, limits.Uplink)
+		}
+		if limits.Downlink != nil {
+			link.Writer = newRateWriter(ctx, link.Writer, limits.Downlink)
+		}
+	}
 	return link
 }
 

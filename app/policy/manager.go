@@ -4,20 +4,27 @@ import (
 	"context"
 
 	"github.com/xtls/xray-core/common"
+	"github.com/xtls/xray-core/common/subscriptionrate"
 	"github.com/xtls/xray-core/features/policy"
 )
 
 // Instance is an instance of Policy manager.
 type Instance struct {
-	levels map[uint32]*Policy
-	system *SystemPolicy
+	levels        map[uint32]*Policy
+	system        *SystemPolicy
+	subscriptions map[string]*subscriptionrate.Limits
 }
 
 // New creates new Policy manager instance.
 func New(ctx context.Context, config *Config) (*Instance, error) {
+	subscriptions, err := BuildSubscriptionRates(config.Subscriptions)
+	if err != nil {
+		return nil, err
+	}
 	m := &Instance{
-		levels: make(map[uint32]*Policy),
-		system: config.System,
+		levels:        make(map[uint32]*Policy),
+		system:        config.System,
+		subscriptions: subscriptions,
 	}
 	if len(config.Level) > 0 {
 		for lv, p := range config.Level {
@@ -28,6 +35,11 @@ func New(ctx context.Context, config *Config) (*Instance, error) {
 	}
 
 	return m, nil
+}
+
+// ForEmail returns the subscription's shared limits, or nil when unrestricted.
+func (m *Instance) ForEmail(email string) *subscriptionrate.Limits {
+	return m.subscriptions[email]
 }
 
 // Type implements common.HasType.

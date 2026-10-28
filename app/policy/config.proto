@@ -49,4 +49,12 @@ message SystemPolicy {
 message Config {
   map<uint32, Policy> level = 1;
   SystemPolicy system = 2;
+  map<string, SubscriptionPolicy> subscriptions = 3;
+}
+
+// Each subscription owns one shared pair of rate limiters on this core instance.
+message SubscriptionPolicy {
+  repeated string emails = 1;
+  uint64 uplink_bps = 2;
+  uint64 downlink_bps = 3;
 }
