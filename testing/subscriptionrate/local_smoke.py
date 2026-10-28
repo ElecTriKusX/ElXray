@@ -25,7 +25,8 @@ def require_free_ports():
 
 
 def wait_ready(process, port):
-    deadline = time.monotonic() + 10
+    # Cold interpreter starts on hosted macOS can exceed ten seconds.
+    deadline = time.monotonic() + 45
     while time.monotonic() < deadline:
         if process.poll() is not None:
             raise RuntimeError(f"Lab process exited with code {process.returncode}")

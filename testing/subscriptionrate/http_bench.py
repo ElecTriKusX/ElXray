@@ -2,6 +2,7 @@
 
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from socketserver import TCPServer
 from urllib.parse import parse_qs, urlsplit
 
 MAX_BYTES = 128 * 1024 * 1024
@@ -80,9 +81,18 @@ class Handler(BaseHTTPRequestHandler):
             self.close_connection = True
 
 
+class LoopbackHTTPServer(ThreadingHTTPServer):
+    def server_bind(self):
+        # HTTPServer.server_bind calls getfqdn(), which can stall on an offline
+        # or misconfigured reverse resolver. This fixture never needs DNS.
+        TCPServer.server_bind(self)
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
+
+
 def serve(port):
     # Never expose this unauthenticated fixture on an external interface.
-    with ThreadingHTTPServer(("127.0.0.1", port), Handler) as server:
+    with LoopbackHTTPServer(("127.0.0.1", port), Handler) as server:
         server.daemon_threads = True
         print(f"Test endpoint: http://127.0.0.1:{server.server_port}", flush=True)
         server.serve_forever()

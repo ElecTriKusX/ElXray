@@ -1,15 +1,15 @@
 import http.client
 import threading
 import unittest
-from http.server import ThreadingHTTPServer
+from unittest.mock import patch
 
-from http_bench import Handler, MAX_BYTES
+from http_bench import Handler, LoopbackHTTPServer, MAX_BYTES
 
 
 class BenchTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        cls.server = LoopbackHTTPServer(("127.0.0.1", 0), Handler)
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
 
@@ -27,6 +27,12 @@ class BenchTest(unittest.TestCase):
             return response.status, response.read()
         finally:
             connection.close()
+
+    def test_fixture_start_does_not_resolve_dns(self):
+        with patch("socket.getfqdn", side_effect=OSError("DNS unavailable")):
+            with LoopbackHTTPServer(("127.0.0.1", 0), Handler) as server:
+                self.assertEqual(server.server_name, "localhost")
+                self.assertGreater(server.server_port, 0)
 
     def test_download_and_upload(self):
         status, body = self.request("GET", "/download?bytes=131073")

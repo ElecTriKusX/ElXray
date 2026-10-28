@@ -8,7 +8,7 @@
 | go test -race ./transport/internet/tls -run '^TestCertificate' | PASS, включая конкурентную перезагрузку сертификата |
 | go vet: изменённые целевые пакеты, CLI API и transport/internet/tls | PASS; полный infra/conf vet не заявлен |
 | FuzzRateChunksPreservePayload, 15 с, 2 workers | PASS, 3565 исполнений; короткий smoke |
-| Python unittest | PASS, 7 тестов |
+| Python unittest | PASS, 8 тестов |
 | vformat / git diff --check | PASS |
 | Сборка Linux amd64 | PASS |
 | Кросс-сборка Windows amd64, Linux arm64, macOS arm64 | PASS; запуск на этих ОС этим не подтверждён |
@@ -22,3 +22,5 @@
 Полный transport/internet/tls suite здесь не прошёл: исходный ECH тест обращается к внешним DNS/Cloudflare и завершается при недоступной сети. Не смешивать это с успешным локальным certificate regression. Ранее на новом Vision race-тесте воспроизведена гонка чтения live TLS certificate против фонового reload; после исправления selected race-прогоны проходят.
 
 Физические Windows/macOS устройства, пара устройств в LAN, ОС TUN, WebRTC провайдеры, длительная нагрузка и CPU/RSS/FD ещё не проверены. Методика: [ACCEPTANCE_TESTS.md](ACCEPTANCE_TESTS.md). Код проверки устройств/подлинности приложения и UI панели ещё не реализован; наличие готовых тестовых сценариев не означает наличие этих компонентов.
+
+В первом GitHub CI-прогоне runtime policy Linux и Windows прошли все этапы, macOS прошёл Go/race/config/TLS/vet/Python/build, но HTTP fixture не открыл порт за 10 секунд. Для стенда удалён ненужный reverse DNS при HTTP bind и увеличен cold-start deadline до 45 секунд. Добавлен тест запуска HTTP fixture при недоступном DNS. Повторный CI требуется для этой правки стенда.
