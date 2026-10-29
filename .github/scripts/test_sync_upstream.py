@@ -117,6 +117,27 @@ class SyncTest(unittest.TestCase):
         self.assertTrue(any(c[1:3] == ("pr", "create") for c in self.calls))
         self.assertFalse(any(c[1:3] == ("api", "graphql") for c in self.calls))
 
+    def test_old_three_check_ruleset_does_not_enable_auto_merge(self):
+        self.release()
+        old_checks = {f"local-regression ({system}-latest)" for system in ("ubuntu", "windows", "macos")}
+        rules = [{"type": "pull_request"}, {"type": "required_status_checks", "parameters": {
+            "strict_required_status_checks_policy": True,
+            "required_status_checks": [{"context": check} for check in old_checks],
+        }}]
+        self.execute(rules=rules)
+        self.assertFalse(any(c[1:3] == ("api", "graphql") for c in self.calls))
+
+    def test_missing_windows_core_test_prevents_auto_merge(self):
+        self.release()
+        rules = [{"type": "pull_request"}, {"type": "required_status_checks", "parameters": {
+            "strict_required_status_checks_policy": True,
+            "required_status_checks": [
+                {"context": check} for check in updater.REQUIRED if check != "test (windows-latest)"
+            ],
+        }}]
+        self.execute(rules=rules)
+        self.assertFalse(any(c[1:3] == ("api", "graphql") for c in self.calls))
+
     def test_already_included_release_does_not_create_pr(self):
         self.release(changed=False)
         self.execute()
