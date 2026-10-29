@@ -72,11 +72,18 @@ func TestPassiveConnection(t *testing.T) {
 	common.Must(err)
 	defer CloseAllServers(servers)
 
-	conn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
-		IP:   []byte{127, 0, 0, 1},
-		Port: int(serverPort),
-	})
-	common.Must(err)
+	var conn *net.TCPConn
+	if !WaitConnAvailableWithTest(t, func() error {
+		var err error
+		conn, err = net.DialTCP("tcp", nil, &net.TCPAddr{
+			IP:   []byte{127, 0, 0, 1},
+			Port: int(serverPort),
+		})
+		return err
+	}) {
+		t.Fatal("passive connection inbound did not become ready")
+	}
+	defer conn.Close()
 
 	{
 		response := make([]byte, 1024)
@@ -215,8 +222,8 @@ func TestDialerProxy(t *testing.T) {
 	common.Must(err)
 	defer CloseAllServers(servers)
 
-	if err := testTCPConn(clientPort, 1024, time.Second*5)(); err != nil {
-		t.Error(err)
+	if !WaitConnAvailableWithTest(t, testTCPConn(clientPort, 1024, time.Second*5)) {
+		t.Fatal("dialer proxy failed to establish a TCP connection")
 	}
 }
 
