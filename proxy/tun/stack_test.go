@@ -664,10 +664,10 @@ func TestTCPCongestion(t *testing.T) {
 func TestTCPLossAgain(t *testing.T) {
 	conns := make(chan accepted, 5)
 	// start opens a connection that says what it has if sack is set, with twenty segments sent and not acknowledged
-	start := func(src string, sack bool) (*peer, *tcpConn) {
+	start := func(src string, sack bool) (*peer, *tcpConn, *stack) {
 		t.Helper()
 		p, l := newPeer(t, src, "10.0.0.2:80")
-		newTestStack(t, l, accept(conns))
+		s := newTestStack(t, l, accept(conns))
 		options := []byte{2, 4, 0, 100}
 		if sack {
 			options = append(options, 4, 2, 0, 0)
@@ -683,7 +683,7 @@ func TestTCPLossAgain(t *testing.T) {
 		for range 2 * tcpStart {
 			p.receive()
 		}
-		return p, a.conn.(*tcpConn)
+		return p, a.conn.(*tcpConn), s
 	}
 	// has says that the system has what it was sent from from to to, past what it acknowledges
 	has := func(p *peer, from, to uint32) []byte {
@@ -696,7 +696,7 @@ func TestTCPLossAgain(t *testing.T) {
 		}
 	}
 
-	p, c := start("10.0.0.1:1234", true)
+	p, c, _ := start("10.0.0.1:1234", true)
 	state := func() (cwnd, ssthresh uint32, stalled, retransmits int) {
 		c.mu.Lock()
 		defer c.mu.Unlock()
@@ -764,7 +764,7 @@ func TestTCPLossAgain(t *testing.T) {
 	p.silent(tcpTick / 2)
 
 	// two are lost. When the first has come, the second is waited for as long as an answer takes
-	p, c = start("10.0.0.1:1235", true)
+	p, c, _ = start("10.0.0.1:1235", true)
 	c.mu.Lock()
 	c.srtt, c.rttvar = tcpTick, 0
 	c.mu.Unlock()
@@ -785,9 +785,11 @@ func TestTCPLossAgain(t *testing.T) {
 	p.send(p.seq, tcpAck, has(p, 100, 1900), nil)
 	p.silent(tcpTick / 2)
 
-	// an answer that takes next to no time is given some all the same: the stack may get to what the system said
-	// before only after it
-	p, c = start("10.0.0.1:1237", true)
+	// A near system has a small RTT, but still gets at least tcpTick/4 to acknowledge
+	// a retransmission. Control the elapsed time explicitly: consuming the preceding
+	// packets may take longer than tcpTick/4 on a busy Windows runner, so wall-clock
+	// sleeps can turn an intended early ACK into a late one.
+	p, c, s := start("10.0.0.1:1237", true)
 	c.mu.Lock()
 	c.srtt, c.rttvar = time.Millisecond, 0
 	c.mu.Unlock()
@@ -796,25 +798,35 @@ func TestTCPLossAgain(t *testing.T) {
 	for range tcpStart - 1 {
 		p.receive()
 	}
-	time.Sleep(tcpTick / 20)
-	p.send(p.seq, tcpAck, has(p, 100, 2000), nil)
-	p.silent(tcpTick / 20)
-	time.Sleep(tcpTick / 4)
-	p.send(p.seq, tcpAck, has(p, 100, 2000), nil)
+	c.mu.Lock()
+	c.headAt = time.Now()
+	c.mu.Unlock()
+	// Synchronous input removes scheduling delays from the simulated early ACK.
+	s.Input(p.bytes(p.seq, tcpAck, has(p, 100, 2000), nil))
+	select {
+	case packet := <-p.sent:
+		t.Fatal("the near system retransmitted before an ACK could arrive: ", packet)
+	default:
+	}
+	// Now simulate a second duplicate ACK arriving after the minimum RTT window.
+	c.mu.Lock()
+	c.headAt = time.Now().Add(-tcpTick)
+	c.mu.Unlock()
+	s.Input(p.bytes(p.seq, tcpAck, has(p, 100, 2000), nil))
 	again(p, "the lost one of a near system once more")
 	if _, _, _, retransmits := state(); retransmits != 0 {
 		t.Fatal("sent once more by the timer")
 	}
 
 	// a timer that runs out with no loss seen before does halve what the way takes
-	p, c = start("10.0.0.1:1238", true)
+	p, c, _ = start("10.0.0.1:1238", true)
 	again(p, "the first segment after the timer")
 	if cwnd, ssthresh, _, retransmits := state(); cwnd != 100 || ssthresh != tcpStart*100 || retransmits != 1 {
 		t.Fatal("after the timer the way takes ", cwnd, " and then ", ssthresh, ", sent again ", retransmits, " times")
 	}
 
 	// a system that cannot say what it has: the third time it says the same, the segment is lost
-	p, c = start("10.0.0.1:1236", false)
+	p, c, _ = start("10.0.0.1:1236", false)
 	for range 2 {
 		p.send(p.seq, tcpAck, nil, nil)
 	}
