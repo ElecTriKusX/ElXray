@@ -5,7 +5,13 @@ from pathlib import Path
 import re
 import subprocess
 
-REQUIRED = {f"local-regression ({system}-latest)" for system in ("ubuntu", "windows", "macos")}
+# These names are the GitHub Actions job contexts, not workflow display names.
+# All platform tests and code generation checks must pass before upstream auto-merge.
+REQUIRED = (
+    {"check-assets", "check-format-and-proto"}
+    | {f"test ({system}-latest)" for system in ("ubuntu", "windows", "macos")}
+    | {f"local-regression ({system}-latest)" for system in ("ubuntu", "windows", "macos")}
+)
 
 
 def command(*args, check=True):
