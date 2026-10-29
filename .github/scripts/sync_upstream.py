@@ -85,7 +85,7 @@ def sync(repo, upstream="XTLS/Xray-core", base="main"):
     try:
         rules = gh_json("api", f"repos/{repo}/rules/branches/{base}")
         if not protected(rules):
-            print("::warning::Auto-merge not enabled: require PRs, all three regression checks and up-to-date branches in an active ruleset.")
+            print("::warning::Auto-merge not enabled: require PRs, all eight required status checks and up-to-date branches in an active ruleset.")
             return
         node = gh_json("pr", "view", url, "--repo", repo, "--json", "id")["id"]
         # Unlike `gh pr merge --auto`, this never falls back to an immediate merge.
