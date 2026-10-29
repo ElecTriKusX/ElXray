@@ -9,7 +9,7 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  check-assets:
+  prepare-release-assets:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -23,7 +23,7 @@ jobs:
 
 
   build:
-    needs: check-assets
+    needs: prepare-release-assets
     permissions:
       contents: write
     strategy:
